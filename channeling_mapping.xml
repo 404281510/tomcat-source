@@ -1,0 +1,1262 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.waiqin365.cloud.biz.aireview.mapper.ChannelingMapper">
+
+    <insert id="insertAiReviewSource" parameterType="com.waiqin365.cloud.biz.aireview.vo.channelingRequest.PiccheckData">
+        insert into ai_review_source
+        (
+            id,
+            tenant_id,
+            create_time,
+            user_id,
+            user_name,
+            cust_id,
+            cust_code,
+            cust_name,
+            cust_location_a,
+            user_location_a,
+            app_id,
+            app_name,
+            pic_path,
+            tenant_name,
+            dept_name,
+            dept_id,
+            component_id,
+            component_name,
+            func_id,
+            func_name,
+            insert_time,
+            rate,
+            label_ids,
+            label_names,
+            full_names,
+            job_id,
+            job_name,
+            cm_type_id,
+            cm_type_name
+        )
+        values
+        (
+            #{id},
+            #{tenantId}::bigint,
+            to_timestamp(#{createTime}, 'YYYY.MM.DD HH24:MI:SS'),
+            #{userId}::bigint,
+            #{userName},
+            #{custId}::bigint,
+            #{custCode},
+            #{custName},
+            #{custLocationA},
+            #{userLocationA},
+            #{appId}::bigint,
+            #{appName},
+            #{picPath},
+            #{tenantName},
+            #{deptName},
+            #{deptId}::bigint,
+            #{componentId},
+            #{componentName},
+            #{funcId},
+            #{funcName},
+            now(),
+            #{rate},
+            #{labelIds},
+            #{labelNames},
+            #{fullNames},
+            #{jobId},
+            #{jobName},
+            #{cmTypeId},
+            #{cmTypeName}
+        )
+    </insert>
+
+
+    <insert id="insertAiReviewSourceApi" parameterType="com.waiqin365.cloud.biz.aireview.vo.channelingRequest.PiccheckData">
+        insert into ai_review_source_api
+        (
+            id,
+            tenant_id,
+            create_time,
+            user_id,
+            user_name,
+            cust_id,
+            cust_code,
+            cust_name,
+            cust_location_a,
+            user_location_a,
+            app_id,
+            app_name,
+            pic_path,
+            tenant_name,
+            dept_name,
+            dept_id,
+            insert_time,
+            rate
+        )
+        values
+            (
+                #{id},
+                #{tenantId}::bigint,
+                to_timestamp(#{createTime}, 'YYYY.MM.DD HH24:MI:SS'),
+                #{userId},
+                #{userName},
+                #{custId},
+                #{custCode},
+                #{custName},
+                #{custLocationA},
+                #{userLocationA},
+                #{appId}::bigint,
+                #{appName},
+                #{picPath},
+                #{tenantName},
+                #{deptName},
+                #{deptId}::bigint,
+                now(),
+                #{rate}
+            )
+    </insert>
+
+
+    <insert id="insertAiReviewSimilarSourceApi" parameterType="com.waiqin365.cloud.biz.aireview.vo.channelingRequest.PiccheckData">
+        insert into ai_review_similar_source_api
+        (
+            id,
+            tenant_id,
+            create_time,
+            user_id,
+            pic_path,
+            insert_time
+        )
+        values
+            (
+                #{id},
+                #{tenantId}::bigint,
+                to_timestamp(#{createTime}, 'YYYY.MM.DD HH24:MI:SS'),
+                #{userId},
+                #{picPath},
+                now()
+            )
+    </insert>
+
+
+    <insert id="insertAiCheckLogs" parameterType="com.waiqin365.cloud.biz.aireview.vo.AiReviewCheckLog">
+        INSERT INTO ai_review_check_log ( id, image_id, ai_response, create_time, status )
+        VALUES
+            (  #{id}, #{imageId}::bigint,#{aiResponse}, now(), #{status} )
+    </insert>
+
+
+    <insert id="insertSysUser" parameterType="com.alibaba.fastjson.JSONObject">
+        insert into ai_review_user
+        (
+            id,
+            code,
+            password,
+            name
+        )
+        values
+            (
+                #{id},
+                #{code},
+                #{password},
+                #{name}
+            )
+    </insert>
+
+
+    <update id="updateSysUser" parameterType="com.alibaba.fastjson.JSONObject">
+        update ai_review_user set code=#{code},password=#{password},name=#{name}
+        where id=#{id}
+    </update>
+
+    <delete id="deleteSysUser" parameterType="com.alibaba.fastjson.JSONObject">
+        delete from ai_review_user
+        where id=#{id}
+    </delete>
+
+    <select id="getAllUserIdsByTenantId" parameterType="java.lang.Long" resultType="java.lang.Long">
+        select distinct
+            user_id
+        from ai_review_source
+        where tenant_id=#{tenantId}::bigint
+        and create_time between (SELECT current_date - interval '1 day') and current_date
+    </select>
+
+    <select id="getAllUserIdsByTenantIdApi" parameterType="java.lang.Long" resultType="java.lang.String">
+        select distinct
+            user_id
+        from ai_review_source_api
+        where tenant_id=#{tenantId}::bigint
+        and create_time between (SELECT current_date - interval '1 day') and current_date
+    </select>
+
+    <select id="findSysUser" parameterType="com.alibaba.fastjson.JSONObject" resultType="map">
+        select distinct
+            sw.id,
+            sw.code,
+            sw.password,
+            sw.name
+        from ai_review_user sw
+        WHERE  1=1
+        <if test="null != name and '' != name">
+            and sw.name like concat('%', #{name}, '%')
+        </if>
+        <if test="null != code and '' != code">
+            and sw.code = #{code}
+        </if>
+    </select>
+
+
+    <select id="getResultByUser" parameterType="long" resultType="map">
+        SELECT distinct
+            ars.user_id,
+            ars.user_name,
+            ars.dept_id,
+            to_char((SELECT current_date - interval '1 day'),'yyyy-MM-dd') as createTime,
+            (select count(distinct ars2.id) from ai_review_source ars2 JOIN ai_review_result_relation arrr ON ars2.ID = arrr.main_id where
+            ars2.user_id=ars.user_id and
+            ars2.create_time between (SELECT current_date - interval '1 day') and current_date
+            ) as nums,
+            (select count(distinct ars3.id) from ai_review_source ars3  where
+            ars3.user_id=ars.user_id and
+            ars3.create_time between (SELECT current_date - interval '1 day') and current_date
+            ) as count
+        FROM "ai_review_source" ars
+        WHERE ars.tenant_id = #{tenantId}
+          and
+            ars.create_time between (SELECT current_date - interval '1 day') and current_date
+    </select>
+
+
+    <select id="getResultByDept" parameterType="long" resultType="map">
+        with monthData as (select *
+                         from ai_review_source
+                         where create_time between DATE_TRUNC('month', CURRENT_DATE - interval '1 day') and DATE_TRUNC('month', CURRENT_DATE- interval '1 day') + INTERVAL '1 month'
+                         and tenant_id = #{tenantId}),
+             cp as (select count(distinct arrr.main_id) as nums, monthData.dept_id,count(distinct monthData.user_id) empNums
+                    from monthData
+                    JOIN ai_review_result_relation arrr ON monthData.ID = arrr.main_id
+                    group by monthData.dept_id)
+        select
+            cp.dept_id   as "deptId",
+            cp.empNums as "empNums",
+            case when cp.nums is null then 0 else cp.nums end as "cpImageNums"
+        from cp
+    </select>
+
+
+    <select id="getResultByCm" parameterType="long" resultType="map">
+        with monthData as (select *
+                       from ai_review_source
+                       where create_time between DATE_TRUNC('month', CURRENT_DATE - interval '1 day') and
+                               DATE_TRUNC('month', CURRENT_DATE - interval '1 day') + INTERVAL '1 month'
+                        and tenant_id = #{tenantId}),
+         cpData as (select count(distinct arrr.main_id) as cpImageNums, count(distinct date_trunc('day', create_time)) dayNums,monthData.cust_id
+                    from monthData
+                             JOIN ai_review_result_relation arrr ON monthData.ID = arrr.main_id
+                    group by monthData.cust_id),
+         slaveImagesData as (select t1.cust_id, count(distinct t2.cust_id) cmNums,string_agg(distinct t2.user_name, ',') as userNames
+                    from monthData t1
+                             JOIN ai_review_result_relation arrr ON t1.ID = arrr.main_id
+                             join monthData t2 on arrr.child_image_id = t2.id
+                    group by t1.cust_id)
+            select cpData.cust_id    as "cmId",
+                   cpData.dayNums                                                  as "dayNums",
+                   case when cpData.cpImageNums is null then 0 else cpData.cpImageNums end               as "cpImageNums",
+                   slaveImagesData.userNames                                                  as "userNames",
+                   slaveImagesData.cmNums                                                  as "cmNums"
+            from cpData
+                     left join slaveImagesData on slaveImagesData.cust_id = cpData.cust_id;
+    </select>
+
+
+    <select id="getApiAllTenant"  resultType="map">
+        SELECT distinct
+            ars.tenant_id as "tenantId"
+        FROM ai_review_source_api ars
+        WHERE
+            ars.create_time between (SELECT current_date - interval '1 day') and current_date
+    </select>
+
+    <select id="getSimilarApiAllTenant"  resultType="map">
+        SELECT distinct
+            ars.tenant_id as "tenantId"
+        FROM ai_review_similar_source_api ars
+          WHERE
+              ars.create_time between (SELECT current_date - interval '1 day') and current_date
+      </select>
+
+
+      <select id="getImagesByUserId"  resultType="com.waiqin365.cloud.biz.aireview.vo.channelingRequest.PiccheckData">
+          select
+              sw.id,
+              sw.user_id as userId,
+              sw.user_name as userName,
+              sw.cust_id as custId,
+              sw.cust_code as custCode,
+              sw.cust_name as custName,
+              sw.pic_path as picPath,
+              sw.app_id as appId,
+              sw.app_name as appName,
+              sw.create_time as createTime,
+              sw.cust_location_a as custLocationA,
+              sw.user_location_a as userLocationA,
+              sw.dept_name as deptName,
+              sw.rate as rate,
+              sw.component_id as componentId
+          from ai_review_source sw
+          WHERE  sw.user_id=#{userId}::bigint and sw.tenant_id = #{tenantId}::bigint  and sw.create_time between (SELECT current_date - interval '1 day') and current_date
+      </select>
+
+      <select id="getImagesByUserIdApi"  resultType="com.waiqin365.cloud.biz.aireview.vo.channelingRequest.PiccheckData">
+          select
+              sw.id,
+              sw.user_id as userId,
+              sw.user_name as userName,
+              sw.cust_id as custId,
+              sw.cust_code as custCode,
+              sw.cust_name as custName,
+              sw.pic_path as picPath,
+              sw.app_id as appId,
+              sw.app_name as appName,
+              sw.create_time as createTime,
+              sw.cust_location_a as custLocationA,
+              sw.user_location_a as userLocationA,
+              sw.dept_name as deptName,
+              sw.rate as rate
+          from ai_review_source_api sw
+          WHERE  sw.user_id=#{userId} and sw.tenant_id = #{tenantId} and sw.create_time between (SELECT current_date - interval '1 day') and current_date
+    </select>
+
+
+    <select id="getSameImagesByUserIdApi" parameterType="java.lang.Long" resultType="com.waiqin365.cloud.biz.aireview.vo.channelingRequest.PiccheckData">
+        select distinct
+            sw.id,
+            sw.user_id as userId,
+            sw.pic_path as picPath,
+            sw.create_time as createTime
+        from ai_review_similar_source_api sw
+        WHERE sw.tenant_id=#{tenantId}   and sw.create_time between (SELECT current_date - interval '1 day') and current_date
+    </select>
+
+    <select id="getCountByUesrNameAndPass" resultType="map">
+        select id,name from
+        ai_review_user where code=#{username} and password=#{password}
+    </select>
+
+    <select id="getUnReviewImageCount" resultType="int">
+        select count(*) from ai_review_result_relation where status is null
+    </select>
+
+
+    <select id="getUnReviewRecordCount" resultType="int">
+        select count(distinct(main_id)) from ai_review_result_relation where status is null
+    </select>
+
+    <select id="getCountById" resultType="int">
+        select count(*) from ai_review_source where id=#{id}
+    </select>
+
+
+    <select id="getCountByIdApi" resultType="int">
+        select count(*) from ai_review_source_api where id=#{id}
+    </select>
+
+
+    <select id="getCountBySimilarIdApi" resultType="int">
+        select count(*) from ai_review_similar_source_api where id=#{id}
+    </select>
+
+    <delete id="deleteAiReviewSourceApiById" >
+        delete from ai_review_source_api where id=#{id}
+    </delete>
+
+
+    <delete id="deleteAiReviewSimilarSourceApi" >
+        delete from ai_review_similar_source_api where id=#{id}
+    </delete>
+
+    <select id="getSimilarCountByIdApi" resultType="int">
+        select count(*) from ai_review_similar_source_api where id=#{id}
+    </select>
+
+
+    <select id="getAireviewLogCount" resultType="int">
+        select count(*) from ai_review_check_log where image_id=#{id} and status='1'
+    </select>
+
+    <select id="getAireviewLogCountByDate" resultType="int">
+        select count(*) from ai_review_check_log where image_id=#{id} and status='1' and create_time   between (SELECT current_date ) and current_date + 1
+    </select>
+
+
+    <select id="getAireviewSameCountByDate" resultType="int">
+        select count(*) from ai_review_similar_result_relation_api where main_id=#{id}  and insert_time   between (SELECT current_date ) and current_date + 1
+    </select>
+
+    <select id="getAireviewChannelingCountByDate" resultType="int">
+        select count(*) from ai_review_result_relation_api where main_id=#{id} and insert_time   between (SELECT current_date ) and current_date + 1
+    </select>
+
+    <insert id="insertChannelingResult" >
+        insert into ai_review_result_relation
+        (
+        id,
+        child_image_id,
+        main_id,
+        rate,
+        child_image_url,
+        insert_time
+        )
+        values
+        <foreach collection="channelingResults" item="record"  separator=",">
+            (
+            #{record.id}::bigint,
+            #{record.childImages}::bigint,
+            #{record.mainId}::bigint,
+            #{record.rate},
+            #{record.childImageUrl},
+             now()
+            )
+        </foreach>
+    </insert>
+
+    <insert id="insertChannelingResultApi" >
+        insert into ai_review_result_relation_api
+        (
+        id,
+        child_image_id,
+        main_id,
+        rate,
+        child_image_url,
+        insert_time
+        )
+        values
+        <foreach collection="channelingResults" item="record"  separator=",">
+            (
+            #{record.id}::bigint,
+            #{record.childImages}::bigint,
+            #{record.mainId}::bigint,
+            #{record.rate},
+            #{record.childImageUrl},
+            now()
+            )
+        </foreach>
+    </insert>
+
+
+    <insert id="insertSimilarChannelingResultApi" >
+        insert into ai_review_similar_result_relation_api
+        (
+        id,
+        child_image_id,
+        main_id,
+        insert_time
+        )
+        values
+        <foreach collection="channelingResults" item="record"  separator=",">
+            (
+            #{record.id}::bigint,
+            #{record.childImages}::bigint,
+            #{record.mainId}::bigint,
+            now()
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateIsChanneling"  parameterType="com.alibaba.fastjson.JSONObject">
+        update ai_review_result_relation set status='1'
+        where main_id=#{mainId}::BIGINT and child_image_id=#{imageId}::BIGINT;
+        update ai_review_source set is_channeling='1' where id=#{mainId}::BIGINT;
+
+    </update>
+
+
+    <update id="updateNotChanneling"  parameterType="com.alibaba.fastjson.JSONObject">
+        update ai_review_result_relation set status='0'
+        where main_id=#{mainId}::BIGINT and child_image_id=#{imageId}::BIGINT
+    </update>
+
+
+    <select id="getAiReviewResultWithChildrenCountOpenApi" parameterType="map" resultType="Integer">
+        SELECT
+        count( distinct aa.id) from (
+        select  distinct ars.id
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id
+        WHERE 1=1 and  ars.tenant_id=#{tenantId}::BIGINT
+        <include refid="whereCondition1" />
+        ) as aa
+    </select>
+
+    <select id="getAiReviewResultWithChildrenCount" parameterType="map" resultType="Integer">
+        SELECT
+        count( distinct aa.id) from (
+        select  distinct ars.id
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id
+        WHERE 1=1 and  ars.tenant_id=#{tenantId}::BIGINT
+        <include refid="whereCondition1" />
+        ) as aa
+    </select>
+    <sql id="whereCondition1">
+        <if test="null != userName and userName.size>0">
+            and ars.user_id in
+            <foreach collection="userName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != dept and  dept.size>0">
+            and ars.dept_id in
+            <foreach collection="dept" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != customerTags and customerTags.size() > 0">
+            AND (
+            <foreach collection="customerTags" item="oneItem" separator=" OR ">
+                ars.label_ids LIKE CONCAT('%', #{oneItem}, '%')
+            </foreach>
+            )
+        </if>
+        <if test="null != appName and  appName.size>0">
+            and ars.app_id in
+            <foreach collection="appName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != componentId and  componentId.size>0">
+            and ars.component_id in
+            <foreach collection="componentId" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}
+            </foreach>
+        </if>
+        <if test="null != reportPerson and '' != reportPerson">
+            and ars.user_name like concat('%', #{reportPerson}, '%') ESCAPE '/'
+        </if>
+        <if test="null != custName and  custName.size>0">
+            and ars.cust_id in
+            <foreach collection="custName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+
+        <if test="null != cmTypes and  cmTypes.size>0">
+            and ars.cm_type_id in
+            <foreach collection="cmTypes" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != jobs and  jobs.size>0">
+            and ars.job_id in
+            <foreach collection="jobs" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+
+        <if test='beginTime != null and beginTime!=""'>
+            AND ars.create_time>=to_date(#{beginTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  ars.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+    </sql>
+
+    <sql id="whereCondition2">
+        <if test="null != userName and userName.size>0">
+            and ars.user_id in
+            <foreach collection="userName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}
+            </foreach>
+        </if>
+        <if test="null != dept and  dept.size>0">
+            and ars.dept_id in
+            <foreach collection="dept" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != appName and  appName.size>0">
+            and ars.app_id in
+            <foreach collection="appName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != reportPerson and '' != reportPerson">
+            and ars.user_name like concat('%', #{reportPerson}, '%') ESCAPE '/'
+        </if>
+        <if test="null != custName and  custName.size>0">
+            and ars.cust_id in
+            <foreach collection="custName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}
+            </foreach>
+        </if>
+        <if test="null != jxs and  jxs.size>0">
+            and ars.cust_id in
+            <foreach collection="jxs" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test='beginTime != null and beginTime!=""'>
+            AND ars.create_time>=to_date(#{beginTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  ars.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+    </sql>
+
+
+    <select id="getAiReviewResultWithChildrenIdsOpenApi" parameterType="map" resultType="Long">
+        select distinct bb.id from (
+        select distinct aa.id,aa.create_time,aa.user_id from(
+        SELECT
+        distinct ars.id,ars.create_time,CAST(ars.user_id AS varchar)
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id
+        WHERE 1=1 and  ars.tenant_id=#{tenantId}::BIGINT
+        <if test='beginTime != null and beginTime!=""'>
+            AND ars.create_time>=to_date(#{beginTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  ars.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+        ) as aa
+        order by aa.create_time desc,aa.user_id desc
+        offset #{offset} limit #{limit}
+        ) as bb
+    </select>
+
+    <select id="getAiReviewResultWithChildrenIds" parameterType="map" resultType="Long">
+        select distinct bb.id from (
+        select distinct aa.id,aa.create_time,aa.user_id from(
+        SELECT
+        distinct ars.id,ars.create_time,CAST(ars.user_id AS varchar)
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id
+        WHERE 1=1 and  ars.tenant_id=#{tenantId}::BIGINT
+        <if test="null != userName and userName.size>0">
+            and ars.user_id in
+            <foreach collection="userName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != dept and  dept.size>0">
+            and ars.dept_id in
+            <foreach collection="dept" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != customerTags and customerTags.size() > 0">
+            AND (
+            <foreach collection="customerTags" item="oneItem" separator=" OR ">
+                ars.label_ids LIKE CONCAT('%', #{oneItem}, '%')
+            </foreach>
+            )
+        </if>
+        <if test="null != componentId and  componentId.size>0">
+            and ars.component_id in
+            <foreach collection="componentId" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}
+            </foreach>
+        </if>
+        <if test="null != reportPerson and '' != reportPerson">
+            and ars.user_name like concat('%', #{reportPerson}, '%') escape '/'
+        </if>
+        <if test="null != appName and  appName.size>0">
+            and ars.app_id in
+            <foreach collection="appName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != custName and  custName.size>0">
+            and ars.cust_id in
+            <foreach collection="custName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != jxs and  jxs.size>0">
+            and ars.cust_id in
+            <foreach collection="jxs" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test='beginTime != null and beginTime!=""'>
+            AND ars.create_time>=to_date(#{beginTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  ars.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+        ) as aa
+        order by aa.create_time desc,aa.user_id desc
+        offset #{offset} limit #{limit}
+        ) as bb
+    </select>
+
+
+    <select id="getUnReviewResultWithChildrenCount" parameterType="map" resultMap="aiReviewResultMap">
+        SELECT distinct
+        arrr.id,
+        arrr.user_id as userId,
+        arrr.user_name as userName,
+        arrr.cust_id as custId,
+        arrr.cust_name as custName,
+        arrr.cust_code as custCode,
+        arrr.cust_location_a as custLocationA,
+        arrr.user_location_a as userLocationA,
+        arrr.app_id as appId,
+        arrr.app_name as appName,
+        arrr.create_time as createTime,
+        arrr.pic_path as picPath,
+        arrr.tenant_id as tenantId,
+        arrr.tenant_name as tenantName,
+        arrr2.id AS childImagesList_id,
+        arrr2.user_id AS childImagesList_userId,
+        arrr2.user_name AS childImagesList_userName,
+        arrr2.cust_id AS childImagesList_custId,
+        arrr2.cust_name AS childImagesList_custName,
+        arrr2.cust_code AS childImagesList_custCode,
+        arrr2.cust_location_a AS childImagesList_custLocationA,
+        arrr2.user_location_a AS childImagesList_userLocationA,
+        arrr2.app_id AS childImagesList_appId,
+        arrr2.app_name AS childImagesList_appName,
+        arrr2.create_time AS childImagesList_createTime,
+        arrr2.pic_path AS childImagesList_picPath,
+        arrr2.tenant_id AS childImagesList_tenantId,
+        arrr2.tenant_name AS childImagesList_tenantName,
+        ars.rate AS childImagesList_rate
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id and arrr.status is null
+        left join ai_review_result_relation arrr2 on ars.child_image=arrr2.id
+        WHERE ars.tenant_id=#{tenantId}
+        <if test="null != userName and '' != userName">
+            and arrr.user_name like concat('%', #{userName}, '%')
+        </if>
+        <if test="null != deptName and '' != deptName">
+            and arrr.dept_name = #{deptName}
+        </if>
+        <if test="null != appName and '' != appName">
+            and arrr.app_name = #{appName}
+        </if>
+        <if test="null != custName and '' != custName">
+            and arrr.cust_name = #{custName}
+        </if>
+        <if test='startTime != null and startTime!=""'>
+            AND arrr.create_time>=to_date(#{startTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  arrr.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+        order by arrr.create_time desc,arrr.user_id desc
+        offset #{offset} limit #{limit}
+    </select>
+
+
+
+    <select id="getLastUnreviewResult" parameterType="map" resultMap="aiReviewResultMap">
+        SELECT distinct
+            ars.id,
+            ars.user_id as userId,
+            ars.user_name as userName,
+            ars.cust_id as custId,
+            ars.cust_name as custName,
+            ars.cust_code as custCode,
+            ars.cust_location_a as custLocationA,
+            ars.user_location_a as userLocationA,
+            ars.app_id as appId,
+            ars.app_name as appName,
+            ars.create_time as createTime,
+            ars.pic_path as picPath,
+            ars.tenant_id as tenantId,
+            ars.dept_name as dept,
+            ars.tenant_name as tenantName,
+        arrr2.id AS childImagesList_id,
+        arrr2.user_id AS childImagesList_userId,
+        arrr2.user_name AS childImagesList_userName,
+        arrr2.cust_id AS childImagesList_custId,
+        arrr2.cust_name AS childImagesList_custName,
+        arrr2.cust_code AS childImagesList_custCode,
+        arrr2.cust_location_a AS childImagesList_custLocationA,
+        arrr2.user_location_a AS childImagesList_userLocationA,
+        arrr2.app_id AS childImagesList_appId,
+        arrr2.app_name AS childImagesList_appName,
+        arrr2.create_time AS childImagesList_createTime,
+        arrr2.pic_path AS childImagesList_picPath,
+        arrr2.tenant_id AS childImagesList_tenantId,
+        arrr2.tenant_name AS childImagesList_tenantName,
+        arrr2.dept_name as childImagesList_dept,
+        arrr.rate AS childImagesList_rate
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id and arrr.status is null AND arrr.review_person=#{userId}
+        left join ai_review_source arrr2 on arrr.child_image_id=arrr2.id
+        WHERE 1=1 and ars.id =
+        (select aa.id from(
+        select a.id,a.create_time
+        from ai_review_source a
+        join ai_review_result_relation b on a.id=b.main_id and b.status is null AND b.review_person =#{userId}
+        order by a.create_time asc limit 1) as aa)
+        <if test="null != tenantName and '' != tenantName">
+            and ars.tenant_name like concat('%', #{tenantName}, '%')
+        </if>
+
+    </select>
+
+
+
+    <select id="getNextUnreviewResult" parameterType="map" resultMap="aiReviewResultMap">
+            SELECT distinct
+                ars.id,
+                ars.user_id as userId,
+                ars.user_name as userName,
+                ars.cust_id as custId,
+                ars.cust_name as custName,
+                ars.cust_code as custCode,
+                ars.cust_location_a as custLocationA,
+                ars.user_location_a as userLocationA,
+                ars.app_id as appId,
+                ars.app_name as appName,
+                ars.create_time as createTime,
+                ars.pic_path as picPath,
+                ars.tenant_id as tenantId,
+                ars.dept_name as dept,
+                ars.tenant_name as tenantName,
+                arrr2.id AS childImagesList_id,
+                arrr2.user_id AS childImagesList_userId,
+                arrr2.user_name AS childImagesList_userName,
+                arrr2.cust_id AS childImagesList_custId,
+                arrr2.cust_name AS childImagesList_custName,
+                arrr2.cust_code AS childImagesList_custCode,
+                arrr2.cust_location_a AS childImagesList_custLocationA,
+                arrr2.user_location_a AS childImagesList_userLocationA,
+                arrr2.app_id AS childImagesList_appId,
+                arrr2.app_name AS childImagesList_appName,
+                arrr2.create_time AS childImagesList_createTime,
+                arrr2.pic_path AS childImagesList_picPath,
+                arrr2.tenant_id AS childImagesList_tenantId,
+                arrr2.tenant_name AS childImagesList_tenantName,
+                arrr2.dept_name as childImagesList_dept,
+                arrr.rate AS childImagesList_rate
+        FROM ai_review_source ars
+                 join ai_review_result_relation arrr on ars.id=arrr.main_id and arrr.status is null AND arrr.review_person is null
+                 left join ai_review_source arrr2 on arrr.child_image_id=arrr2.id
+        WHERE 1=1 and ars.id =
+                      (select aa.id from(
+                            select a.id,a.create_time
+                            from ai_review_source a
+                            join ai_review_result_relation b on a.id=b.main_id and b.status is null AND b.review_person is null
+                            order by a.create_time asc limit 1) as aa)
+        <if test="null != tenantName and '' != tenantName">
+            and ars.tenant_name like concat('%', #{tenantName}, '%')
+        </if>
+    </select>
+
+
+    <select id="getExportResultByParams" parameterType="map" resultType="com.waiqin365.cloud.biz.aireview.vo.AireviewExportVO">
+        select aa.* from (
+        SELECT distinct
+        ars.id,
+        CAST(ars.user_id  AS varchar) as userId,
+        ars.user_name as userName,
+        CAST(ars.cust_id AS varchar)   as custId,
+        ars.cust_name as custName,
+        ars.cust_code as custCode,
+        ars.cust_location_a as custLocationA,
+        ars.user_location_a as userLocationA,
+        ars.app_id as appId,
+        ars.app_name as appName,
+        ars.create_time as createTime,
+        ars.pic_path as picPath,
+        ars.dept_name as dept,
+        ars.full_names as fullNames,
+        ars.job_id::varchar as jobId,
+        ars.job_name as jobName,
+        ars.cm_type_id::varchar as cmTypeId,
+        ars.cm_type_name as cmTypeName,
+        ars.func_name as funcName,
+        ars.component_name as componentName,
+        (SELECT string_agg(arrr.child_image_url, ',') AS concatenated_names FROM ai_review_result_relation arrr WHERE arrr.main_id = ars.id ) as childImages
+        FROM ai_review_source ars
+        WHERE ars.tenant_id=#{tenantId}::BIGINT and exists(select 1 from ai_review_result_relation b where ars.id=b.main_id)
+        <if test="null != userName and userName.size>0">
+            and ars.user_id in
+            <foreach collection="userName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != componentId and  componentId.size>0">
+            and ars.component_id in
+            <foreach collection="componentId" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}
+            </foreach>
+        </if>
+        <if test="null != reportPerson and '' != reportPerson">
+            and ars.user_name like concat('%', #{reportPerson}, '%') escape '/'
+        </if>
+        <if test="null != dept and  dept.size>0">
+            and ars.dept_id in
+            <foreach collection="dept" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != customerTags and customerTags.size() > 0">
+            AND (
+            <foreach collection="customerTags" item="oneItem" separator=" OR ">
+                ars.label_ids LIKE CONCAT('%', #{oneItem}, '%')
+            </foreach>
+            )
+        </if>
+        <if test="null != appName and  appName.size>0">
+            and ars.app_id in
+            <foreach collection="appName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != custName and  custName.size>0">
+            and ars.cust_id in
+            <foreach collection="custName" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+
+        <if test="null != cmTypes and  cmTypes.size>0">
+            and ars.cm_type_id in
+            <foreach collection="cmTypes" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test="null != jobs and  jobs.size>0">
+            and ars.job_id in
+            <foreach collection="jobs" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+
+        <if test='beginTime != null and beginTime!=""'>
+            AND ars.create_time>=to_date(#{beginTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  ars.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+        ) as aa
+        order by aa.createTime desc,aa.userId desc
+    </select>
+
+
+
+    <select id="getAiReviewResultWithChildrenOpenApi" parameterType="map" resultMap="aiReviewResultMapOpenApi">
+        select aa.* from (
+        SELECT distinct
+        ars.id,
+        CAST(ars.user_id AS varchar) as userId,
+        ars.user_name as userName,
+        CAST(ars.cust_id AS varchar)  as custId,
+        ars.cust_name as custName,
+        ars.cust_code as custCode,
+        ars.app_id as appId,
+        ars.app_name as appName,
+        to_char( ars.create_time, 'yyyy-mm-dd hh24:mi:ss' ) as createTime,
+        to_char( (select create_time from ai_review_check_log arcl where arcl.image_id=ars.id order by arcl.create_time desc limit 1) , 'yyyy-mm-dd hh24:mi:ss' ) as checkTime,
+        ars.pic_path as picPath,
+        ars.component_id as componentId,
+        ars.component_name as componentName,
+        ars.func_id as funcId,
+        ars.func_name as funcName,
+        ars.tenant_id as tenantId,
+        ars.dept_name as dept,
+        ars.tenant_name as tenantName,
+        arrr2.id AS childImagesList_id,
+        CAST(arrr2.user_id AS varchar)  AS childImagesList_userId,
+        arrr2.user_name AS childImagesList_userName,
+        CAST(arrr2.cust_id AS varchar)  AS childImagesList_custId,
+        arrr2.cust_name AS childImagesList_custName,
+        arrr2.cust_code AS childImagesList_custCode,
+        arrr2.app_id AS childImagesList_appId,
+        arrr2.app_name AS childImagesList_appName,
+        to_char(arrr2.create_time, 'yyyy-mm-dd hh24:mi:ss' ) as childImagesList_createTime,
+        to_char((select create_time from ai_review_check_log arcl where arcl.image_id=arrr2.id order by arcl.create_time desc limit 1), 'yyyy-mm-dd hh24:mi:ss' ) as childImagesList_checkTime,
+        arrr2.pic_path AS childImagesList_picPath,
+        arrr2.component_id as childImagesList_componentId,
+        arrr2.component_name as childImagesList_componentName,
+        arrr2.func_id as childImagesList_funcId,
+        arrr2.func_name as childImagesList_funcName,
+        arrr2.tenant_id AS childImagesList_tenantId,
+        arrr2.dept_name as childImagesList_dept,
+        arrr2.tenant_name AS childImagesList_tenantName,
+        arrr.rate AS childImagesList_rate
+        FROM ai_review_source ars
+        join ai_review_result_relation arrr on ars.id=arrr.main_id
+        left join ai_review_source arrr2 on arrr.child_image_id=arrr2.id
+        WHERE 1=1 and ars.tenant_id=#{tenantId}::BIGINT
+        <if test="null != idLists and idLists.size>0">
+            and ars.id in
+            <foreach collection="idLists" item="oneItem" separator=","
+                     open="(" close=")">
+                #{oneItem}::bigint
+            </foreach>
+        </if>
+        <if test='beginTime != null and beginTime!=""'>
+            AND ars.create_time>=to_date(#{beginTime},'yyyy-MM-dd')
+        </if>
+        <if test='endTime != null and endTime !=""'>
+            AND  ars.create_time &lt;=to_date(#{endTime},'yyyy-MM-dd')+1
+        </if>
+        ) as aa
+        order by aa.createTime desc,aa.userId desc
+    </select>
+
+    <select id="getAiReviewResultWithChildren" parameterType="map" resultMap="aiReviewResultMap">
+        with mainTable as (SELECT ars.id,
+                    CAST(ars.user_id AS varchar) as userId,
+                    ars.user_name                as userName,
+                    CAST(ars.cust_id AS varchar) as custId,
+                    ars.cust_name                as custName,
+                    ars.cust_code                as custCode,
+                    ars.cust_location_a          as custLocationA,
+                    ars.user_location_a          as userLocationA,
+                    ars.app_id                   as appId,
+                    ars.app_name                 as appName,
+                    ars.create_time              as createTime,
+                    ars.pic_path                 as picPath,
+                    ars.tenant_id                as tenantId,
+                    ars.dept_name                as dept,
+                    ars.tenant_name              as tenantName,
+                    ars.label_names              as customerTags,
+                    ars.full_names               as fullNames,
+                    ars.job_id::varchar          as jobId,
+                    ars.job_name                 as jobName,
+                    ars.cm_type_id::varchar      as cmTypeId,
+                    ars.cm_type_name             as cmTypeName,
+                    ars.func_name                as funcName,
+                    ars.component_name           as componentName
+                    FROM ai_review_source ars
+            WHERE exists(select 1 from ai_review_result_relation arrr where ars.id = arrr.main_id)
+                    and ars.tenant_id=#{tenantId}::BIGINT
+             <include refid="whereCondition1" />
+            order by createTime desc,userId desc
+            limit #{limit} offset #{offset}
+            )
+    select  mainTable.id,
+            mainTable.userId,
+            mainTable.userName,
+            mainTable.custId,
+            mainTable.custName,
+            mainTable.custCode,
+            mainTable.custLocationA,
+            mainTable.userLocationA,
+            mainTable.appId,
+            mainTable.appName,
+            mainTable.createTime,
+            mainTable.picPath,
+            mainTable.tenantId,
+            mainTable.dept,
+            mainTable.tenantName,
+            mainTable.customerTags,
+            mainTable.fullNames,
+            mainTable.jobId,
+            mainTable.jobName,
+            mainTable.cmTypeId,
+            mainTable.cmTypeName,
+            mainTable.funcName,
+            mainTable.componentName,
+            arrr.rate                      AS childImagesList_rate,
+            arrr2.id                       AS childImagesList_id,
+            CAST(arrr2.user_id AS varchar) AS childImagesList_userId,
+            arrr2.user_name                AS childImagesList_userName,
+            CAST(arrr2.cust_id AS varchar) AS childImagesList_custId,
+            arrr2.cust_name                AS childImagesList_custName,
+            arrr2.cust_code                AS childImagesList_custCode,
+            arrr2.cust_location_a          AS childImagesList_custLocationA,
+            arrr2.user_location_a          AS childImagesList_userLocationA,
+            arrr2.app_id                   AS childImagesList_appId,
+            arrr2.app_name                 AS childImagesList_appName,
+            arrr2.create_time              AS childImagesList_createTime,
+            arrr2.pic_path                 AS childImagesList_picPath,
+            arrr2.tenant_id                AS childImagesList_tenantId,
+            arrr2.dept_name                as childImagesList_dept,
+            arrr2.tenant_name              AS childImagesList_tenantName,
+            arrr2.label_names              AS childImagesList_customerTags
+            from mainTable
+            left join ai_review_result_relation arrr on mainTable.id = arrr.main_id
+            left join ai_review_source arrr2 on arrr.child_image_id = arrr2.id;
+    </select>
+
+    <resultMap id="aiReviewResultMap" type="com.waiqin365.cloud.biz.aireview.vo.channelingResponse.AiReviewResult">
+        <id property="id" column="id"/>
+        <result property="userId" column="userId"/>
+        <result property="userName" column="userName"/>
+        <result property="custId" column="custId"/>
+        <result property="custName" column="custName"/>
+        <result property="custCode" column="custCode"/>
+        <result property="custLocationA" column="custLocationA"/>
+        <result property="userLocationA" column="userLocationA"/>
+        <result property="appId" column="appId"/>
+        <result property="appName" column="appName"/>
+        <result property="createTime" column="createTime"/>
+        <result property="picPath" column="picPath"/>
+        <result property="componentId" column="componentId"/>
+        <result property="componentName" column="componentName"/>
+        <result property="funcId" column="funcId"/>
+        <result property="funcName" column="funcName"/>
+        <result property="tenantId" column="tenantId"/>
+        <result property="dept" column="dept"/>
+        <result property="tenantName" column="tenantName"/>
+        <result property="customerTags" column="customerTags"/>
+        <collection property="childImagesList" ofType="com.waiqin365.cloud.biz.aireview.vo.channelingResponse.AiReviewResult">
+            <id property="id" column="childImagesList_id"/>
+            <result property="userId" column="childImagesList_userId"/>
+            <result property="userName" column="childImagesList_userName"/>
+            <result property="custId" column="childImagesList_custId"/>
+            <result property="custName" column="childImagesList_custName"/>
+            <result property="custCode" column="childImagesList_custCode"/>
+            <result property="custLocationA" column="childImagesList_custLocationA"/>
+            <result property="userLocationA" column="childImagesList_userLocationA"/>
+            <result property="appId" column="childImagesList_appId"/>
+            <result property="appName" column="childImagesList_appName"/>
+            <result property="createTime" column="childImagesList_createTime"/>
+            <result property="picPath" column="childImagesList_picPath"/>
+            <result property="componentId" column="childImagesList_componentId"/>
+            <result property="componentName" column="childImagesList_componentName"/>
+            <result property="funcId" column="childImagesList_funcId"/>
+            <result property="funcName" column="childImagesList_funcName"/>
+            <result property="tenantId" column="childImagesList_tenantId"/>
+            <result property="dept" column="childImagesList_dept"/>
+            <result property="tenantName" column="childImagesList_tenantName"/>
+            <result property="rate" column="childImagesList_rate"/>
+            <result property="customerTags" column="childImagesList_customerTags"/>
+        </collection>
+    </resultMap>
+
+
+    <resultMap id="aiReviewResultMapOpenApi" type="com.waiqin365.cloud.biz.aireview.vo.channelingResponse.AiReviewResultOpenApi">
+        <id property="id" column="id"/>
+        <result property="userId" column="userId"/>
+        <result property="userName" column="userName"/>
+        <result property="custId" column="custId"/>
+        <result property="custName" column="custName"/>
+        <result property="custCode" column="custCode"/>
+        <result property="createTime" column="createTime"/>
+        <result property="checkTime" column="checkTime"/>
+        <result property="picPath" column="picPath"/>
+        <result property="componentId" column="componentId"/>
+        <result property="componentName" column="componentName"/>
+        <result property="funcId" column="funcId"/>
+        <result property="funcName" column="funcName"/>
+        <collection property="childImagesList" ofType="com.waiqin365.cloud.biz.aireview.vo.channelingResponse.AiReviewResultOpenApi">
+            <id property="id" column="childImagesList_id"/>
+            <result property="userId" column="childImagesList_userId"/>
+            <result property="userName" column="childImagesList_userName"/>
+            <result property="custId" column="childImagesList_custId"/>
+            <result property="custName" column="childImagesList_custName"/>
+            <result property="custCode" column="childImagesList_custCode"/>
+            <result property="createTime" column="childImagesList_createTime"/>
+            <result property="checkTime" column="childImagesList_checkTime"/>
+            <result property="picPath" column="childImagesList_picPath"/>
+            <result property="componentId" column="childImagesList_componentId"/>
+            <result property="componentName" column="childImagesList_componentName"/>
+            <result property="funcId" column="childImagesList_funcId"/>
+            <result property="funcName" column="childImagesList_funcName"/>
+            <result property="rate" column="childImagesList_rate"/>
+        </collection>
+    </resultMap>
+
+
+    <update id="updateRelationByMainId"  >
+        update ai_review_result_relation set review_person=#{userId}
+        where main_id=#{mainId}
+    </update>
+
+
+    <select id="getExportResultByIds"  parameterType="java.lang.String" resultType="com.waiqin365.cloud.biz.aireview.vo.AireviewExportVO">
+        select distinct
+            ars.id,
+            CAST( ars.user_id AS varchar) as userId,
+            ars.user_name as userName,
+            CAST( ars.cust_id AS varchar) as custId,
+            ars.cust_name as custName,
+            ars.cust_code as custCode,
+            ars.cust_location_a as custLocationA,
+            ars.user_location_a as userLocationA,
+            ars.app_name as appName,
+            ars.create_time as createTime,
+            ars.pic_path as picPath,
+            ars.dept_name as dept,
+            ars.full_names as fullNames,
+            ars.job_id::varchar as jobId,
+            ars.job_name as jobName,
+            ars.cm_type_id::varchar as cmTypeId,
+            ars.cm_type_name as cmTypeName,
+            ars.func_name as funcName,
+            ars.component_name as componentName,
+            (SELECT string_agg(arrr.child_image_url, ',') AS concatenated_names FROM ai_review_result_relation arrr WHERE arrr.main_id = ars.id ) as childImages
+        from ai_review_source ars
+        where ars.tenant_id=#{tenantId}::BIGINT and
+        ars.id in
+        <foreach collection ="idsList" item="id" separator ="," open="(" close=")">
+            #{id}::BIGINT
+        </foreach>
+    </select>
+    <select id="getAiReviewResultByImageUrl" resultType="java.lang.String">
+        select ars.pic_path from ai_review_source ars join ai_review_result_relation relation on ars.id = relation.main_id
+        where ars.tenant_id=#{tenantId}
+                and ars.pic_path in
+                <foreach collection ="imageUrlList" item="item" separator ="," open="(" close=")">
+                    #{item.imageUrl}
+                </foreach>
+    </select>
+
+
+    <select id="getCmAiReviewResultDetail" resultType="com.waiqin365.cloud.biz.aireview.vo.CmAiReviewResultDetailVo">
+        select  ars1.cust_id as cmId,
+                ars1.cust_code as cmCode,
+                ars1.cust_name as cmName,
+                ars1.cust_location_a as cmLocationA,
+                ars1.user_name as userName,
+                ars1.dept_name as deptName,
+                to_char(ars1.create_time, 'yyyy-MM-dd') as dataDate
+                from ai_review_source ars
+                join ai_review_result_relation relation on ars.id = relation.main_id
+                join ai_review_source ars1 on relation.child_image_id = ars1.id
+        where   ars.create_time >=  #{startDate}::timestamp
+        AND <![CDATA[ars.create_time < #{endDate}::timestamp + interval '1 day']]>
+        and ars.tenant_id = #{tenantId}::bigint and ars.cust_id = #{cmId}::bigint
+        group by 1, 2, 3, 4, 5, 6, 7
+        <if test="null != sortSql and sortSql !=''">
+            ${sortSql}
+        </if>
+        <if test="export = null or export = '' ">
+            offset (#{page}::numeric -1)*#{rows}::numeric
+            limit #{rows}::numeric
+        </if>
+    </select>
+    <select id="getCmAiReviewResultDetailCount" resultType="java.lang.Integer">
+        select count(1)
+            from ai_review_source ars
+            join ai_review_result_relation relation on ars.id = relation.main_id
+            join ai_review_source ars1 on relation.child_image_id = ars1.id
+        where  ars.create_time >=  #{startDate}::timestamp
+        AND <![CDATA[ars.create_time < #{endDate}::timestamp + interval '1 day']]>
+          and ars.tenant_id = #{tenantId}::bigint and ars.cust_id = #{cmId}::bigint
+    </select>
+</mapper>
